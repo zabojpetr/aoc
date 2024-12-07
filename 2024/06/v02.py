@@ -4,6 +4,8 @@ import typing
 import json
 import re
 import numpy as np
+import timeit
+from multiprocessing import Pool
 
 os.chdir(Path(__file__).parent)
 
@@ -95,7 +97,16 @@ class Map:
         return d[1]
 
                 
+def ev(data, i, j):
+    m2 = Map(data)
+    m2.set_obstecle(i,j)
 
+    while not m2.is_end():
+        m2.next()
+
+    ic = m2.is_cycle()
+
+    return int(ic)
 
 def main() -> None:
 
@@ -112,21 +123,21 @@ def main() -> None:
         m.next()
 
     cycles = 0
+    args = []
     for i, r in enumerate(m.get_map()):
         for j, c in enumerate(r):
             if c == 1:
-                
-                m2 = Map(data)
-                m2.set_obstecle(i,j)
+                args.append((data.copy(), i, j))
 
-                while not m2.is_end():
-                    m2.next()
+    with Pool(12) as p:
+        result = p.starmap(ev, args)
 
-                ic = m2.is_cycle()
-                cycles += ic
+    cycles = sum(result)
         
         
     print("Sum:", cycles)
 
 if __name__ == "__main__":
+    start = timeit.default_timer()
     main()
+    print(f"Total time: {timeit.default_timer() - start}s.")
