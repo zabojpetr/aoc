@@ -7,6 +7,7 @@ import timeit
 import numpy as np
 from collections import namedtuple
 import heapq
+import multiprocessing
 
 os.chdir(Path(__file__).parent)
 
@@ -90,8 +91,8 @@ class Mapa():
                 np.array([1,0]),
                 np.array([-1,0]),
             ]
+        cheats = {}
         for d in ds:
-            sp = possition + d
             seen: typing.Set[Node] = set()
             actual: typing.List[NodeValue] = list()
             heapq.heappush(actual, NodeValue(1,(possition+d)[0], (possition+d)[1]))
@@ -111,14 +112,12 @@ class Mapa():
                     continue
 
                 if self.is_valid(p):
-                    if tuple(p) == (7,3) and tuple(possition) == (3,1):
-                        pass
                     path_length =  (
                             (self.from_to[tuple(possition)].from_start + self.from_to[tuple(possition)].to_end - 1) 
                             - (self.from_to[tuple(possition)].from_start + self.from_to[tuple(p)].to_end - 1 + v)
                             )
-                    if (tuple(possition), tuple(p)) not in self.cheats or self.cheats[tuple(possition), tuple(p)] < path_length:
-                        self.cheats[tuple(possition), tuple(p)] = path_length
+                    if (tuple(possition), tuple(p)) not in cheats or cheats[tuple(possition), tuple(p)] < path_length:
+                        cheats[tuple(possition), tuple(p)] = path_length
                     
 
                 seen.add(n)
@@ -130,40 +129,19 @@ class Mapa():
                 ]:
                     heapq.heappush(actual, NodeValue(v+1, *(p+d)))
 
+        return cheats
+
 
     def find_cheats(self):
-        self.cheats: typing.Dict[typing.Tuple[int,int,int,int],int] = {}
-        self.seen: typing.Set[Node] = set()
-        self.actual: typing.List[NodeValue] = list()
-        heapq.heappush(self.actual, NodeValue(0,self.start_possition[0], self.start_possition[1]))
-        while len(self.actual) > 0:
-            nv = heapq.heappop(self.actual)
-            p = np.array([nv.pr, nv.pc])
-            v = nv.value
-            n = Node(*(nv[1:]))
+        pool = multiprocessing.Pool(10)
+        ps = self.from_to.keys()
+        ps = filter(lambda x: x != tuple(self.end_possition), ps)
+        cheats = pool.map(self.find_cheat_paths, list(map(np.array,ps)))
 
-            if all(p == self.end_possition):
-                break
+        for ch in cheats:
+            self.cheats.update(ch)
 
-            if n in self.seen:
-                continue
-            
-            if not self.is_valid(p):
-                continue
-            
-            print(f"\rStep: {v}/{sum(self.from_to[tuple(n)])-1}", end = "")
-
-            ds = [
-                np.array([0,1]),
-                np.array([0,-1]),
-                np.array([1,0]),
-                np.array([-1,0]),
-            ]
-            self.find_cheat_paths(p)
-
-            self.seen.add(n)
-            for d in ds:
-                heapq.heappush(self.actual, NodeValue(v+1, *(p+d)))
+        print(len(self.cheats))
 
 
 def main() -> None:
