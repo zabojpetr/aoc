@@ -1,0 +1,75 @@
+import os
+from pathlib import Path
+import typing
+import math
+
+os.chdir(Path(__file__).parent)
+
+def get_char(data, row, col):
+    if row >= len(data):
+        return ''
+    elif col >= len(data[row]):
+        return ''
+    elif data[row][col] == '\n':
+        return ''
+    else:
+        return data[row][col]
+
+def parse_input(data: typing.List[str]):
+    cols = []
+    max_len = max(len(row) for row in data)
+    num_rows = len(data)
+    op = None
+    new_col = True
+    for col in range(max_len):
+        if new_col:
+            cols.append([])
+            new_col = False
+        if get_char(data, num_rows-1, col).strip() != '':
+            op = get_char(data, num_rows-1, col).strip()
+        num = ""
+        for row in range(num_rows-1):
+            num += get_char(data, row, col)
+        num = num.strip()
+        if num == '':
+            cols[-1].append(op)
+            op = None
+            new_col = True
+        else:
+            cols[-1].append(num)
+            
+            
+    return cols
+    
+def compute(data: list[list[str]]):
+    total_sum = 0
+    for c in data:
+        op = c[-1]
+        nums = c[:-1]
+        
+        if op == "+":
+            res = sum(map(int,nums))
+            total_sum += res
+        elif op == "*":
+            res = math.prod(map(int,nums))
+            total_sum += res
+    return total_sum
+    
+    
+
+def main() -> None:
+
+    with open("input.txt", "r") as fs:
+        data = fs.readlines()
+
+    parsed_data = parse_input(data)
+
+    total_sum = compute(parsed_data)
+
+
+    print(total_sum)
+
+
+
+if __name__ == "__main__":
+    main()
